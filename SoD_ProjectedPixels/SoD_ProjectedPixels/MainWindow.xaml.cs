@@ -21,6 +21,7 @@ using SocketIOClient.Messages;
 using WebSocket4Net;
 using SOD_CS_Library;
 using System.Drawing;
+using System.Timers;
 
 namespace SoD_ProjectedPixels
 {
@@ -40,6 +41,7 @@ namespace SoD_ProjectedPixels
         public double yEnd;
         public double height;
         public double width;
+        public double radius;
         public string coorSys;
         public string name;
         public int windowNo;
@@ -77,13 +79,17 @@ namespace SoD_ProjectedPixels
         static String port = "";
 
         static String fileName = "";
+        static bool connected = false;
 
-        public const double CONVERTER = (512 / 5);
+        public const double CONVERTER = (512 / 2);
+
+        public int pathLinesID;
+
+        public Timer timer;
 
         JavaScriptSerializer js = new JavaScriptSerializer();
 
         #endregion
-
 
         #region Projector Set Up
 
@@ -130,7 +136,6 @@ namespace SoD_ProjectedPixels
                     }
 
                     Console.WriteLine("Request of layout list made");
-                
                 }
 
                 Console.Write(result);
@@ -139,6 +144,9 @@ namespace SoD_ProjectedPixels
             catch (Exception exception)
             {
                 Console.WriteLine(exception);
+
+                setup_button.IsEnabled = false;
+                resetup_button.IsEnabled = true;
             }
         }
 
@@ -175,28 +183,56 @@ namespace SoD_ProjectedPixels
                 {
                     result = reader.ReadToEnd();
 
-                    // Save the room list of surfaces
-                    SoD.SODProjector.room.Surfaces = new Dictionary<string, SOD.Surface>();
-                    SoD.SODProjector.room.Windows = new Dictionary<string, SOD.Window>();
-                    SoD.SODProjector.room.Elements = new Dictionary<string, SOD.Element>();
+                    // Create new lists of surfaces, windows and elements for the room object
+                    SoD.SODProjector.room.Surfaces = new Dictionary<string, Projector.Surface>();
+                    SoD.SODProjector.room.Windows = new Dictionary<string, Projector.Window>();
+                    SoD.SODProjector.room.Elements = new Dictionary<string, Projector.Element>();
 
+                    // get data from projector server
                     JavaScriptSerializer js = new JavaScriptSerializer();
                     Result res_obj = (Result)js.Deserialize(result, typeof(Result));
 
+                    // sizes of each surface from layout file
+                    string[] sizes = res_obj.realSizes.Split(';');
+
                     int count = Convert.ToInt32(res_obj.count);
 
+                    // Create a surface object for each surface in the layout file and save to the room
                     for (int i = 1; i <= count; i++) {
+
                         // get the surface numbers and save them
-                        SOD.Surface surface = new SOD.Surface();
+                        Projector.Surface surface = new Projector.Surface();
                         surface.ID = i.ToString();
-                        surface.windows = new Dictionary<string, SOD.Window>();
+
+                        // save the real height and width of the surface and convert to meters 
+                        string[] heightwidth = sizes[i-1].Split(':');
+                        surface.height = (Convert.ToDouble(heightwidth[0]) / 100);
+                        surface.width = (Convert.ToDouble(heightwidth[1]) / 100);
+
+                        // create a new list of windows for the surface 
+                        surface.windows = new Dictionary<string, Projector.Window>();
+
+                        // Add the surface to the room object
                         SoD.SODProjector.room.Surfaces.Add(surface.ID, surface);
+
+                        if (i == 1)
+                            grid_surface1.Visibility = System.Windows.Visibility.Visible;
+                        else if (i == 2)
+                            grid_surface2.Visibility = System.Windows.Visibility.Visible;
+                        else if (i == 3)
+                            grid_surface3.Visibility = System.Windows.Visibility.Visible;
+                        else if (i == 4)
+                            grid_surface4.Visibility = System.Windows.Visibility.Visible;
                     }
 
+                    // register the projector and its room data in SoD
                     SoD.SODProjector.data = SoD.SODProjector.room;
                     SoD.SODProjector.subscriber.subscriberType = "device";
                     SoD.SODProjector.ID = SoD.ownDevice.ID;
                     SoD.RegisterProjector();
+
+                    surface_grid.Visibility = System.Windows.Visibility.Visible;
+
                 }
 
                 Console.Write(result);
@@ -207,6 +243,312 @@ namespace SoD_ProjectedPixels
                 Console.WriteLine(exception);
             }
         }
+
+        
+
+
+        //
+        private void Set_Surfaces_Click(object sender, RoutedEventArgs e)
+        {
+            foreach (KeyValuePair<string, Projector.Surface> pair in SoD.SODProjector.room.Surfaces)
+            {
+                Projector.Surface surface = pair.Value;
+                ComboBoxItem selectedItem;
+
+                if (pair.Key == "1")
+                {
+                    selectedItem = (ComboBoxItem)surface1_type_box.SelectedItem;
+                    surface.type = selectedItem.Content.ToString();
+                }
+                else if (pair.Key == "2") 
+                {
+                    selectedItem = (ComboBoxItem)surface2_type_box.SelectedItem;
+                    surface.type = selectedItem.Content.ToString();
+                }
+                else if (pair.Key == "3")
+                {
+                    selectedItem = (ComboBoxItem)surface3_type_box.SelectedItem;
+                    surface.type = selectedItem.Content.ToString();
+                }
+                else if (pair.Key == "4")
+                {
+                    selectedItem = (ComboBoxItem)surface4_type_box.SelectedItem;
+                    surface.type = selectedItem.Content.ToString();
+                }
+            }
+        }
+
+
+        #endregion 
+
+        #region Reconnect to Server
+
+        private void ReSetUp_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string path = _url + "/api/loadDefinedSurfaces";
+                fileName = (string)layout_file_list.SelectionBoxItem;
+
+                // Check for selection
+                if (fileName == null)
+                    return;
+
+                HttpWebRequest request = WebRequest.Create(new Uri(path)) as HttpWebRequest;
+                request.Method = "POST";
+                request.ContentType = "application/json; charset=UTF-8";
+
+                //Send the request
+                using (StreamWriter writer = new StreamWriter(request.GetRequestStream()))
+                {
+                    string obj = "{\"fileName\":\"" + fileName + "\"}";
+                    writer.Write(obj);
+                    writer.Flush();
+                    writer.Close();
+                }
+
+
+                // Get the response
+                string result = null;
+                HttpWebResponse response = request.GetResponse() as HttpWebResponse;
+                using (StreamReader reader = new StreamReader(response.GetResponseStream()))
+                {
+                    result = reader.ReadToEnd();
+                    recoverLayout();
+                }
+
+                Console.Write(result);
+
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception);
+
+                setup_button.IsEnabled = false;
+                resetup_button.IsEnabled = true;
+            }
+        }
+
+        private void recoverLayout()
+        {
+
+            foreach (KeyValuePair<string, Projector.Surface> s in SoD.SODProjector.room.Surfaces)
+            {
+                Projector.Surface surface = s.Value;
+
+                foreach (KeyValuePair<string, Projector.Window> w in surface.windows)
+                {
+                    Projector.Window window = w.Value;
+
+                    // draw a new window on server
+                    try
+                    {
+                        string path = _url + "/api/newWindow";
+
+                        Projector.newWindowjsondata data = new Projector.newWindowjsondata();
+                        data.surfaceNo = Convert.ToInt32(surface.ID);
+                        data.x = window.x;
+                        data.y = window.y;
+                        data.height = window.height;
+                        data.width = window.width;
+                        data.coorSys = "pix";
+                        data.name = window.name;
+
+                        string obj = js.Serialize(data);
+
+                        HttpWebRequest request = WebRequest.Create(new Uri(path)) as HttpWebRequest;
+                        request.Method = "POST";
+                        request.ContentType = "application/json; charset=UTF-8";
+
+                        //Send the request
+                        using (StreamWriter writer = new StreamWriter(request.GetRequestStream()))
+                        {
+                            writer.Write(obj);
+                            writer.Flush();
+                            writer.Close();
+                        }
+
+                        // Get the response
+                        string result = null;
+                        HttpWebResponse response = request.GetResponse() as HttpWebResponse;
+                        using (StreamReader reader = new StreamReader(response.GetResponseStream()))
+                        {
+                            result = reader.ReadToEnd();
+                            Console.Write(result);
+
+                            // update the ID after recovery
+                            Result result_obj = (Result)js.Deserialize(result, typeof(Result));
+                            window.ID = result_obj.windowNo.ToString();
+
+                            foreach (KeyValuePair<string, Projector.Element> e in window.elements)
+                            {
+                                Projector.Element element = e.Value;
+
+                                path = _url +  getPathForType(element.type);
+                                obj = getElementStringData(element, window.ID);
+
+                                HttpWebRequest element_request = WebRequest.Create(new Uri(path)) as HttpWebRequest;
+                                element_request.Method = "POST";
+                                element_request.ContentType = "application/json; charset=UTF-8";
+
+                                //Send the request
+                                using (StreamWriter writer = new StreamWriter(element_request.GetRequestStream()))
+                                {
+                                    writer.Write(obj);
+                                    writer.Flush();
+                                    writer.Close();
+                                }
+
+                                // Get the response
+                                string element_result = null;
+                                HttpWebResponse element_response = element_request.GetResponse() as HttpWebResponse;
+                                using (StreamReader element_reader = new StreamReader(element_response.GetResponseStream()))
+                                {
+                                    element_result = element_reader.ReadToEnd();
+                                    Console.Write(element_result);
+
+                                    // update the ID after recovery
+                                    result_obj = (Result)js.Deserialize(result, typeof(Result));
+                                    element.ID = result_obj.elementNo.ToString();
+                                }
+                            }
+
+                            resetup_button.IsEnabled = false;
+                        }
+
+                    }
+                    catch (Exception exception)
+                    {
+                        Console.WriteLine(exception);
+
+                        setup_button.IsEnabled = false;
+                        resetup_button.IsEnabled = true;
+                    }
+
+                }
+            }
+        }
+
+        private string getPathForType(string type)
+        {
+            string path = "";
+
+            if ("circle" == type)
+                path = "/api/newCircle";
+            else if ("rectangle" == type)
+                path = "/api/newRectangle";
+            else if ("image" == type)
+                path = "/api/newTexRectangle";
+            else if ("line" == type)
+                path = "/api/newLine";
+            else if ("text" == type)
+                path = "/api/newText";
+            else if ("path" == type)
+            {
+
+            }
+
+            return path;
+            
+        }
+
+        private string getElementStringData(Projector.Element element, string windowID)
+        {
+            string jsondata = "";
+
+            if ("circle" == element.type) {
+
+                Projector.Circle circle = (Projector.Circle)element;
+
+                Projector.newCirclejsondata data = new Projector.newCirclejsondata();
+                data.windowNo = Convert.ToInt32(windowID);
+                data.x = circle.x;
+                data.y = circle.y;
+                data.radius = circle.radius;
+                data.coorSys = "pix";
+                data.lineColor = circle.lineColor;
+                data.lineWidth = circle.lineWidth;
+                data.fillColor = circle.fillColor;
+                data.sides = circle.sides;
+
+                jsondata = js.Serialize(data);
+            }
+            else if ("rectangle" == element.type) {
+
+                Projector.Rectangle rectangle = (Projector.Rectangle)element;
+
+                Projector.newRectjsondata data = new Projector.newRectjsondata();
+                data.windowNo = Convert.ToInt32(windowID);
+                data.x = rectangle.x;
+                data.y = rectangle.y;
+                data.height = rectangle.height;
+                data.width = rectangle.width;
+                data.coorSys = "pix";
+                data.lineColor = rectangle.lineColor;
+                data.lineWidth = rectangle.lineWidth;
+                data.fillColor = rectangle.fillColor;
+
+                jsondata = js.Serialize(data);
+            }
+            else if ("image" == element.type) {
+
+                Projector.Image image = (Projector.Image)element;
+
+                Projector.newImagejsondata data = new Projector.newImagejsondata();
+                data.windowNo = Convert.ToInt32(windowID);
+                data.x = image.x;
+                data.y = image.y;
+                data.height = image.height;
+                data.coorSys = "pix";
+                data.textureData = image.image;
+                data.extension = image.extension;
+
+                jsondata = js.Serialize(data);
+            }
+            else if ("line" == element.type) {
+
+                Projector.Line line = (Projector.Line)element;
+
+                Projector.newLinejsondata data = new Projector.newLinejsondata();
+                data.windowNo = Convert.ToInt32(windowID);
+                data.xStart = line.x;
+                data.yStart = line.y;
+                data.xEnd = line.end_x;
+                data.yEnd = line.end_y;
+                data.coorSys = "pix";
+                data.color = line.color;
+                data.width = line.width;
+
+                jsondata = js.Serialize(data);
+            }
+            else if ("text" == element.type) {
+
+                Projector.Text text = (Projector.Text)element;
+
+                Projector.newtextjsondata data = new Projector.newtextjsondata();
+                data.windowNo = Convert.ToInt32(windowID);
+                data.text = text.text;
+                data.x = text.x;
+                data.y = text.y;
+                data.coorSys = "pix";
+                data.ptSize = text.ptSize;
+                data.font = text.font;
+                data.color = text.color;
+
+                jsondata = js.Serialize(data);
+            }
+            else if ("path" == element.type) {
+
+            }
+
+            return jsondata;
+        }
+
+
+        #endregion
+
+        #region Calls to Projector Server
+
 
         private void callProjectorServer(string api_call, string jsondata, string method, int PID, string name)
         {
@@ -272,6 +614,10 @@ namespace SoD_ProjectedPixels
                             Console.WriteLine("New Text");
                             addElementToWindow(result, jsondata, name, "text");
                             break;
+                        case "/api/removeElement":
+                            Console.WriteLine("Remove Element");
+                            removeElementFromWindow(result, jsondata, name, "text");
+                            break;
                         default:
                             Console.WriteLine("Path not found");
                             break;
@@ -291,136 +637,61 @@ namespace SoD_ProjectedPixels
             catch (Exception exception)
             {
                 Console.WriteLine(exception);
+
+                setup_button.IsEnabled = false;
+                resetup_button.IsEnabled = true;
             }
         }
 
-        
 
-        public void addWindowToRoom(string result, string jsondata)
+        private void getElementsOnWindow(string api_call, string jsondata, string method, int PID)
         {
-            // Get the response from the projector server and parse data
-            
-            Result result_obj = (Result)js.Deserialize(result, typeof(Result));
-
-            // parse the jsondata to update room data
-            Result json = (Result)js.Deserialize(jsondata, typeof(Result));
-
-            foreach(KeyValuePair<string, SOD.Surface>pair in SoD.SODProjector.room.Surfaces)
+            try
             {
-                // Add the new window to the surface
-                SOD.Surface surface = pair.Value;
-                SOD.Window window = new SOD.Window();
-                window.ID = result_obj.windowNo.ToString();
-                window.elements = new Dictionary<string, SOD.Element>();
-                window.owner = surface.ID;
+                Result json = (Result)js.Deserialize(jsondata, typeof(Result));
+                string path = _url + api_call;
 
-                if (surface.ID.Equals(json.surfaceNo.ToString()))
+                HttpWebRequest request = WebRequest.Create(new Uri(path)) as HttpWebRequest;
+                request.Method = method;
+                request.ContentType = "application/json; charset=UTF-8";
+
+                //Send the request
+                using (StreamWriter writer = new StreamWriter(request.GetRequestStream()))
                 {
-                    surface.windows.Add(window.ID, window);
-                    // add to list of all windows
-                    SoD.SODProjector.room.Windows.Add(window.ID, window);
+                    writer.Write(jsondata);
+                    writer.Flush();
+                    writer.Close();
                 }
-
                 
-            }
-        }
-
-        public void addElementToWindow(string result, string jsondata, string name, string type)
-        {
-            // Get the response from the projector server and parse data
-
-            Result result_obj = (Result)js.Deserialize(result, typeof(Result));
-
-            // parse the jsondata to update room data
-            Result json = (Result)js.Deserialize(jsondata, typeof(Result));
-
-            foreach (KeyValuePair<string, SOD.Surface> pair in SoD.SODProjector.room.Surfaces)
-            {
-               
-                SOD.Surface surface = pair.Value;
-
-                foreach (KeyValuePair<string, SOD.Window> w in surface.windows)
+                // Get the response
+                string result = null;
+                HttpWebResponse response = request.GetResponse() as HttpWebResponse;
+                using (StreamReader reader = new StreamReader(response.GetResponseStream()))
                 {
-                    SOD.Window window = w.Value;
-                    if (window.ID.Equals(json.windowNo.ToString()))
+                    result = reader.ReadToEnd();
+
+                    Result result_obj = (Result)js.Deserialize(result, typeof(Result));
+                    
+                    Console.WriteLine("Request of surface list made by: ");
+                    //if PID was parsed successfully from the received message, send back a reply/acknowledgement with the same PID
+                    if (PID != -1)
                     {
-                        if (type == "line")
-                        {
-                            SOD.Line line = new SOD.Line();
-                            line.ID = result_obj.elementNo.ToString();
-                            line.name = name;
-                            line.x = json.xStart;
-                            line.y = json.yStart;
-                            line.end_x = json.xEnd;
-                            line.end_y = json.yEnd;
-                            line.type = type;
-                            line.owner = window.ID;
-
-                            // add to windows list of elements 
-                            window.elements.Add(line.ID, line);
-                            // add to list of all elements
-                            SoD.SODProjector.room.Elements.Add(line.ID, line);
-                        }
-                        else if (type == "text")
-                        {
-                            SOD.Text element = new SOD.Text();
-                            element.ID = result_obj.elementNo.ToString();
-                            element.name = name;
-                            element.x = json.x;
-                            element.y = json.y;
-                            element.type = type;
-                            element.owner = window.ID;
-                            element.text = json.text;
-                            element.font = json.font;
-                            element.ptSize = json.ptSize;
-
-                            // add to windows list of elements 
-                            window.elements.Add(element.ID, element);
-                            // add to list of all elements
-                            SoD.SODProjector.room.Elements.Add(element.ID, element);
-                        }
-                        else
-                        {
-                            SOD.Element element = new SOD.Element();
-                            element.ID = result_obj.elementNo.ToString();
-                            element.name = name;
-                            element.x = json.x;
-                            element.y = json.y;
-                            element.type = type;
-                            element.owner = window.ID;
-
-                            // add to windows list of elements 
-                            window.elements.Add(element.ID, element);
-                            // add to list of all elements
-                            SoD.SODProjector.room.Elements.Add(element.ID, element);
-                        }
-
-                        
-                        
+                        SoD.SendAcknowledgementWithPID(PID, result);
                     }
                 }
+
+                Console.Write(result);
+
             }
-        }
-
-        public void moveElementOnWindow(string result, string jsondata, string name)
-        {
-            // Get the response from the projector server and parse data
-
-            Result result_obj = (Result)js.Deserialize(result, typeof(Result));
-
-            // parse the jsondata to update room data
-            Result json = (Result)js.Deserialize(jsondata, typeof(Result));
-
-            foreach (KeyValuePair<string, SOD.Element> pair in SoD.SODProjector.room.Elements)
+            catch (Exception exception)
             {
-                SOD.Element element = pair.Value;
-                if (element.ID == json.elementNo.ToString())
-                {
-                    element.x = json.x;
-                    element.y = json.y;
-                }
+                Console.WriteLine(exception);
+
+                setup_button.IsEnabled = false;
+                resetup_button.IsEnabled = true;
             }
         }
+        
 
         class MoveElementData
         {
@@ -436,16 +707,16 @@ namespace SoD_ProjectedPixels
             // parse the jsondata to update room data
             Result json = (Result)js.Deserialize(jsondata, typeof(Result));
 
-            SOD.Element element = getElement(json.elementNo);
+            Projector.Element element = getElement(json.elementNo);
 
             double end_x = (double)json.x;
             double end_y = (double)json.y;
 
-            double inc_x = ((end_x * CONVERTER) - (double)element.x) / intervals;
-            double inc_y = ((end_y * CONVERTER) - (double)element.y) / intervals;
+            double inc_x = (end_x - (double)element.x) / intervals;
+            double inc_y = (end_y - (double)element.y) / intervals;
 
 
-            while(intervals > 0) 
+            while (intervals > 0)
             {
                 try
                 {
@@ -501,16 +772,437 @@ namespace SoD_ProjectedPixels
                 catch (Exception exception)
                 {
                     Console.WriteLine(exception);
+
+                    setup_button.IsEnabled = false;
+                    resetup_button.IsEnabled = true;
                 }
             }
-            
+
         }
 
-        private SOD.Element getElement(int elementNo)
+        private void createNewPath(string api_call, string jsondata, string method, int PID, string name)
         {
-            foreach (KeyValuePair<string, SOD.Element> pair in SoD.SODProjector.room.Elements)
+            try
             {
-                SOD.Element element = pair.Value;
+                string path = _url + api_call;
+
+                HttpWebRequest request = WebRequest.Create(new Uri(path)) as HttpWebRequest;
+                request.Method = method;
+                request.ContentType = "application/json; charset=UTF-8";
+
+                //Send the request
+                using (StreamWriter writer = new StreamWriter(request.GetRequestStream()))
+                {
+                    writer.Write(jsondata);
+                    writer.Flush();
+                    writer.Close();
+                }
+
+
+                // Get the response
+                string result = null;
+                HttpWebResponse response = request.GetResponse() as HttpWebResponse;
+                using (StreamReader reader = new StreamReader(response.GetResponseStream()))
+                {
+                    result = reader.ReadToEnd();
+
+                    createPathElement(result, jsondata, name, "path");
+
+                    //if PID was parsed successfully from the received message, send back a reply/acknowledgement with the same PID
+                    if (PID != -1)
+                    {
+                        SoD.SendAcknowledgementWithPID(PID, SoD.SODProjector.room);
+                    }
+                }
+
+                Console.Write(result);
+
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception);
+
+                setup_button.IsEnabled = false;
+                resetup_button.IsEnabled = true;
+            }
+        }
+
+        private void addLineToPath(string api_call, string jsondata, string method, int PID, string name)
+        {
+            try
+            {
+                string path = _url + api_call;
+
+                HttpWebRequest request = WebRequest.Create(new Uri(path)) as HttpWebRequest;
+                request.Method = method;
+                request.ContentType = "application/json; charset=UTF-8";
+
+                //Send the request
+                using (StreamWriter writer = new StreamWriter(request.GetRequestStream()))
+                {
+                    writer.Write(jsondata);
+                    writer.Flush();
+                    writer.Close();
+                }
+
+
+                // Get the response
+                string result = null;
+                HttpWebResponse response = request.GetResponse() as HttpWebResponse;
+                using (StreamReader reader = new StreamReader(response.GetResponseStream()))
+                {
+                    result = reader.ReadToEnd();
+
+                    addLineToPathElement(result, jsondata, name, "line");
+
+                    //if PID was parsed successfully from the received message, send back a reply/acknowledgement with the same PID
+                    if (PID != -1)
+                    {
+                        SoD.SendAcknowledgementWithPID(PID, SoD.SODProjector.room);
+                    }
+                }
+
+                Console.Write(result);
+
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception);
+
+                setup_button.IsEnabled = false;
+                resetup_button.IsEnabled = true;
+            }
+        }
+
+        
+
+
+        #endregion
+
+        #region Update Room
+
+        public void addWindowToRoom(string result, string jsondata)
+        {
+            // Get the response from the projector server and parse data
+            
+            Result result_obj = (Result)js.Deserialize(result, typeof(Result));
+
+            // parse the jsondata to update room data
+            Result json = (Result)js.Deserialize(jsondata, typeof(Result));
+
+            foreach (KeyValuePair<string, Projector.Surface> pair in SoD.SODProjector.room.Surfaces)
+            {
+                // Add the new window to the surface
+                Projector.Surface surface = pair.Value;
+                Projector.Window window = new Projector.Window();
+                window.ID = result_obj.windowNo.ToString();
+                window.elements = new Dictionary<string, Projector.Element>();
+                window.owner = surface.ID;
+                window.x = json.x;
+                window.y = json.y;
+                window.height = json.height;
+                window.width = json.width;
+                window.name = json.name;
+
+                if (surface.ID.Equals(json.surfaceNo.ToString()))
+                {
+                    surface.windows.Add(window.ID, window);
+                    // add to list of all windows
+                    SoD.SODProjector.room.Windows.Add(window.ID, window);
+                }
+
+                
+            }
+        }
+
+        private void removeElementFromWindow(string result, string jsondata, string name, string p)
+        {
+            Result result_obj = (Result)js.Deserialize(result, typeof(Result));
+
+            // parse the jsondata to update room data
+            Result json = (Result)js.Deserialize(jsondata, typeof(Result));
+
+            foreach (KeyValuePair<string, Projector.Surface> pair in SoD.SODProjector.room.Surfaces)
+            {
+
+                Projector.Surface surface = pair.Value;
+
+                foreach (KeyValuePair<string, Projector.Window> w in surface.windows)
+                {
+                    Projector.Window window = w.Value;
+
+                    if (window.ID.Equals(json.windowNo.ToString()))
+                    {
+                        foreach (KeyValuePair<string, Projector.Element> e in window.elements)
+                        {
+                            Projector.Element element = e.Value;
+                            if (element.ID == json.elementNo.ToString())
+                            {
+                                // remove from window's list of elements 
+                                window.elements.Remove(e.Key);
+                                // add to list of all elements
+                                SoD.SODProjector.room.Elements.Remove(e.Key);
+                            }
+                        }
+                        
+                    }
+                }
+            }
+        }
+
+        public void addElementToWindow(string result, string jsondata, string name, string type)
+        {
+            // Get the response from the projector server and parse data
+
+            Result result_obj = (Result)js.Deserialize(result, typeof(Result));
+
+            // parse the jsondata to update room data
+            Result json = (Result)js.Deserialize(jsondata, typeof(Result));
+
+            foreach (KeyValuePair<string, Projector.Surface> pair in SoD.SODProjector.room.Surfaces)
+            {
+
+                Projector.Surface surface = pair.Value;
+
+                foreach (KeyValuePair<string, Projector.Window> w in surface.windows)
+                {
+                    Projector.Window window = w.Value;
+                    if (window.ID.Equals(json.windowNo.ToString()))
+                    {
+                        if (type == "circle")
+                        {
+                            Projector.Circle element = new Projector.Circle();
+                            element.ID = result_obj.elementNo.ToString();
+                            element.name = name;
+                            element.x = json.x;
+                            element.y = json.y;
+                            element.type = type;
+                            element.owner = window.ID;
+                            element.radius = json.radius;
+                            element.lineColor = json.lineColor;
+                            element.lineWidth = json.lineWidth;
+                            element.fillColor = json.fillColor;
+                            element.sides = json.sides;
+
+                            // add to windows list of elements 
+                            window.elements.Add(element.ID, element);
+                            // add to list of all elements
+                            SoD.SODProjector.room.Elements.Add(element.ID, element);
+
+                        }
+                        else if (type == "rectangle")
+                        {
+                            Projector.Rectangle element = new Projector.Rectangle();
+                            element.ID = result_obj.elementNo.ToString();
+                            element.name = name;
+                            element.x = json.x;
+                            element.y = json.y;
+                            element.type = type;
+                            element.owner = window.ID;
+                            element.height = json.height;
+                            element.width = json.width;
+                            element.lineColor = json.lineColor;
+                            element.lineWidth = json.lineWidth;
+                            element.fillColor = json.fillColor;
+
+                            // add to windows list of elements 
+                            window.elements.Add(element.ID, element);
+                            // add to list of all elements
+                            SoD.SODProjector.room.Elements.Add(element.ID, element);
+                        }
+                        else if (type == "image")
+                        {
+                            Projector.Image element = new Projector.Image();
+                            element.ID = result_obj.elementNo.ToString();
+                            element.name = name;
+                            element.x = json.x;
+                            element.y = json.y;
+                            element.type = type;
+                            element.owner = window.ID;
+                            element.height = json.height;
+                            element.width = json.width;
+                            //element.image = json.textureData;
+                            element.extension = json.extension;
+
+                            // add to windows list of elements 
+                            window.elements.Add(element.ID, element);
+                            // add to list of all elements
+                            SoD.SODProjector.room.Elements.Add(element.ID, element);
+                        }
+                        else if (type == "line")
+                        {
+                            Projector.Line line = new Projector.Line();
+                            line.ID = result_obj.elementNo.ToString();
+                            line.name = name;
+                            line.x = json.xStart;
+                            line.y = json.yStart;
+                            line.end_x = json.xEnd;
+                            line.end_y = json.yEnd;
+                            line.type = type;
+                            line.owner = window.ID;
+                            line.color = json.color;
+                            line.width = json.width;
+
+                            // add to windows list of elements 
+                            window.elements.Add(line.ID, line);
+                            // add to list of all elements
+                            SoD.SODProjector.room.Elements.Add(line.ID, line);
+                        }
+                        else if (type == "text")
+                        {
+                            Projector.Text element = new Projector.Text();
+                            element.ID = result_obj.elementNo.ToString();
+                            element.name = name;
+                            element.x = json.x;
+                            element.y = json.y;
+                            element.type = type;
+                            element.owner = window.ID;
+                            element.text = json.text;
+                            element.font = json.font;
+                            element.ptSize = json.ptSize;
+                            element.color = json.color;
+
+                            // add to windows list of elements 
+                            window.elements.Add(element.ID, element);
+                            // add to list of all elements
+                            SoD.SODProjector.room.Elements.Add(element.ID, element);
+                        }
+                        //else
+                        //{
+                        //    Projector.Element element = new Projector.Element();
+                        //    element.ID = result_obj.elementNo.ToString();
+                        //    element.name = name;
+                        //    element.x = json.x;
+                        //    element.y = json.y;
+                        //    element.type = type;
+                        //    element.owner = window.ID;
+
+                        //    // add to windows list of elements 
+                        //    window.elements.Add(element.ID, element);
+                        //    // add to list of all elements
+                        //    SoD.SODProjector.room.Elements.Add(element.ID, element);
+                        //}
+
+                        
+                        
+                    }
+                }
+            }
+        }
+
+        public void moveElementOnWindow(string result, string jsondata, string name)
+        {
+            // Get the response from the projector server and parse data
+
+            Result result_obj = (Result)js.Deserialize(result, typeof(Result));
+
+            // parse the jsondata to update room data
+            Result json = (Result)js.Deserialize(jsondata, typeof(Result));
+
+            foreach (KeyValuePair<string, Projector.Element> pair in SoD.SODProjector.room.Elements)
+            {
+                Projector.Element element = pair.Value;
+                if (element.ID == json.elementNo.ToString())
+                {
+                    element.x = json.x;
+                    element.y = json.y;
+                }
+            }
+        }
+
+
+        public void createPathElement(string result, string jsondata, string name, string type)
+        {
+            Result result_obj = (Result)js.Deserialize(result, typeof(Result));
+
+            // parse the jsondata to update room data
+            Result json = (Result)js.Deserialize(jsondata, typeof(Result));
+
+            foreach (KeyValuePair<string, Projector.Surface> pair in SoD.SODProjector.room.Surfaces)
+            {
+
+                Projector.Surface surface = pair.Value;
+
+                foreach (KeyValuePair<string, Projector.Window> w in surface.windows)
+                {
+                    Projector.Window window = w.Value;
+                    if (window.ID.Equals(json.windowNo.ToString()))
+                    {
+                        Projector.Path element = new Projector.Path();
+                        element.ID = result_obj.elementNo.ToString();
+                        element.name = name;
+                        element.x = json.xStart;
+                        element.y = json.yStart;
+                        element.type = type;
+                        element.owner = window.ID;
+
+                        element.lines = new List<Projector.Line>();
+
+                        pathLinesID = 0;
+
+                        Projector.Line line = new Projector.Line();
+                        line.ID = result_obj.elementNo.ToString() +"."+ pathLinesID;
+                        line.name = name + "-line";
+                        line.x = json.xStart;
+                        line.y = json.yStart;
+                        line.end_x = json.xEnd;
+                        line.end_y = json.yEnd;
+                        line.type = "line";
+                        line.owner = element.ID;
+                        line.color = json.color;
+                        line.width = json.width;
+
+                        element.lines.Add(line);
+
+                        // add to windows list of elements 
+                        window.elements.Add(element.ID, element);
+                        // add to list of all elements
+                        SoD.SODProjector.room.Elements.Add(element.ID, element);
+
+                        pathLinesID++;
+                    }
+                }
+            }
+        }
+
+        private void addLineToPathElement(string result, string jsondata, string name, string p)
+        {
+            Result result_obj = (Result)js.Deserialize(result, typeof(Result));
+
+            // parse the jsondata to update room data
+            Result json = (Result)js.Deserialize(jsondata, typeof(Result));
+
+            foreach (KeyValuePair<string, Projector.Element> pair in SoD.SODProjector.room.Elements) 
+            {
+                Projector.Element element = pair.Value;
+                if (element.name == name)
+                {
+                    Projector.Path path = (Projector.Path)element;
+
+                    Projector.Line line = new Projector.Line();
+                    line.ID = result_obj.elementNo.ToString() +"."+ pathLinesID;
+                    line.name = name + "-line";
+                    line.x = json.xStart;
+                    line.y = json.yStart;
+                    line.end_x = json.xEnd;
+                    line.end_y = json.yEnd;
+                    line.type = "line";
+                    line.owner = element.ID;
+                    line.color = json.color;
+                    line.width = json.width;
+
+                    path.lines.Add(line);
+                }
+            }
+        }
+
+
+
+        private Projector.Element getElement(int elementNo)
+        {
+            foreach (KeyValuePair<string, Projector.Element> pair in SoD.SODProjector.room.Elements)
+            {
+                Projector.Element element = pair.Value;
                 if (element.ID == elementNo.ToString())
                 {
                     return element;
@@ -541,8 +1233,8 @@ namespace SoD_ProjectedPixels
         #region SOD parameters
         static SOD_CS_Library.SOD SoD;
         // Device parameters. Set 
-        // TODO: FILL THE FOLLOWING VARIABLES AND WITH POSSIBLE VALUES
-        static int _deviceID = -1;                   // OPTIONAL. If it's not unique, it will be "randomly" assigned by locator.
+        // TODO: FILL THE FOLLOWING VARIABLES WITH POSSIBLE VALUES
+        static int _deviceID = 27;                   // OPTIONAL. If it's not unique, it will be "randomly" assigned by locator.
         static string _deviceName = "ProjectedPixelsController";   // You can name your device
         static string _deviceType = "ProjectorController";   // Cusomize device
         static bool _deviceIsStationary = true;     // If mobile device, assign false.
@@ -828,13 +1520,74 @@ namespace SoD_ProjectedPixels
                 callProjectorServer(api_call, jsondata, method, PID, name);
             });
 
+            // make a create new line call to the projector api for the start of a path
+            SoD.On("newPathController", (msgReceived) =>
+            {
+                // Call the API
+                int PID = msgReceived.PID;
+                string api_call = msgReceived.data["path"];
+                string jsondata = msgReceived.data["jsondata"];
+                string method = msgReceived.data["method"];
+                string name = msgReceived.data["name"];
+
+                createNewPath(api_call, jsondata, method, PID, name);
+            });
+
+            // make a create new line call to the projector api for the start of a path
+            SoD.On("addLineToPathController", (msgReceived) =>
+            {
+                // Call the API
+                int PID = msgReceived.PID;
+                string api_call = msgReceived.data["path"];
+                string jsondata = msgReceived.data["jsondata"];
+                string method = msgReceived.data["method"];
+                string name = msgReceived.data["name"];
+
+                addLineToPath(api_call, jsondata, method, PID, name);
+            });
+
+            // remove element from projector server 
+            SoD.On("removeElementController", (msgReceived) =>
+            {
+                // Call the API
+                int PID = msgReceived.PID;
+                string api_call = msgReceived.data["path"];
+                string jsondata = msgReceived.data["jsondata"];
+                string method = msgReceived.data["method"];
+                string name = msgReceived.data["name"];
+
+                callProjectorServer(api_call, jsondata, method, PID, name);
+            });
+
+
+            // get elements on window from projector server 
+            SoD.On("getElementsOnWindowController", (msgReceived) =>
+            {
+                // Call the API
+                int PID = msgReceived.PID;
+                string api_call = msgReceived.data["path"];
+                string jsondata = msgReceived.data["jsondata"];
+                string method = msgReceived.data["method"]; 
+
+                getElementsOnWindow(api_call, jsondata, method, PID);
+            });
         }
+
+       
+
+        
 
         
 
 
 
         #endregion
+
+        // Disconnect SoD so that the device ID will be the same
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            disconnectSoD();
+        }
 
     }
 }
