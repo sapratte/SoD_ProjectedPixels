@@ -19,9 +19,9 @@
         <ComboBox Name="layout_file_list" HorizontalAlignment="Left" Margin="216,59,0,0" VerticalAlignment="Top" Width="145" Height="26"/>
 
         <!-- Surfaces -->
-        <Grid Name="surface_grid" Visibility="Hidden">
+        <Grid Name="surface_grid" Visibility="Visible">
             <Label Content="Room Surfaces:" HorizontalAlignment="Left" Margin="10,220,0,0" VerticalAlignment="Top" Width="154" FontWeight="Bold" RenderTransformOrigin="0.571,5"/>
-            
+
             <!-- Surface 1 -->
             <Grid Name="grid_surface1" Margin="31,251,329,120" Visibility="Hidden">
                 <Label Content="Surface 1" HorizontalAlignment="Left" VerticalAlignment="Top" Width="93" FontWeight="Bold" RenderTransformOrigin="0.571,5"/>
@@ -34,14 +34,14 @@
                     <ComboBoxItem Content="Ceiling"></ComboBoxItem>
                     <ComboBoxItem Content="Floor"></ComboBoxItem>
                 </ComboBox>
-                
-                <!-- TODO: Add custom height width?
-                <Label Content="Dimensions:" HorizontalAlignment="Left" VerticalAlignment="Top" Width="93" FontWeight="Bold" RenderTransformOrigin="0.571,5" Margin="0,99,0,0"/>
-                <TextBox Name="width_surface1" HorizontalAlignment="Left" Height="22" Margin="5,125,0,0" TextWrapping="Wrap" Text="8" VerticalAlignment="Top" Width="24" TextAlignment="Center"/>
-                <Label Content="m  x" HorizontalAlignment="Left" Margin="24,121,0,0" VerticalAlignment="Top" Width="36" FontWeight="Bold"/>
-                <Label Content="m" HorizontalAlignment="Left" Margin="80,121,0,0" VerticalAlignment="Top" Width="28" FontWeight="Bold" Height="28"/>
-                <TextBox Name="height_surface1" HorizontalAlignment="Left" Height="22" Margin="60,125,0,0" TextWrapping="Wrap" Text="8" VerticalAlignment="Top" Width="24" TextAlignment="Center"/>
-                -->
+
+                <!-- TODO: Add custom height width?-->
+                <Label Content="Offsets:" HorizontalAlignment="Left" VerticalAlignment="Top" Width="93" FontWeight="Bold" RenderTransformOrigin="0.571,5" Margin="0,99,0,0"/>
+                <TextBox Name="xoff_surface1" HorizontalAlignment="Left" Height="22" Margin="5,125,0,0" TextWrapping="Wrap" Text="8" VerticalAlignment="Top" Width="24" TextAlignment="Center"/>
+                <Label Content="x" HorizontalAlignment="Left" Margin="29,121,0,0" VerticalAlignment="Top" Width="16" FontWeight="Bold"/>
+                <Label Content="z" HorizontalAlignment="Left" Margin="74,121,0,0" VerticalAlignment="Top" Width="28" FontWeight="Bold" Height="28"/>
+                <TextBox Name="zoff_surface1" HorizontalAlignment="Left" Height="22" Margin="50,125,0,0" TextWrapping="Wrap" Text="8" VerticalAlignment="Top" Width="24" TextAlignment="Center"/>
+
             </Grid>
 
             <!-- Surface 2 -->
@@ -56,15 +56,14 @@
                     <ComboBoxItem Content="Ceiling"></ComboBoxItem>
                     <ComboBoxItem Content="Floor"></ComboBoxItem>
                 </ComboBox>
-                <!--
-                <Label Content="Dimensions:" HorizontalAlignment="Left" VerticalAlignment="Top" Width="93" FontWeight="Bold" RenderTransformOrigin="0.571,5" Margin="0,99,0,0"/>
-                <TextBox x:Name="width_surface2" HorizontalAlignment="Left" Height="22" Margin="5,125,0,0" TextWrapping="Wrap" Text="8" VerticalAlignment="Top" Width="24" TextAlignment="Center"/>
-                <Label Content="m  x" HorizontalAlignment="Right" Margin="0,121,43,0" VerticalAlignment="Top" Width="36" FontWeight="Bold"/>
-                <Label Content="m" HorizontalAlignment="Right" Margin="0,121,-4,0" VerticalAlignment="Top" Width="28" FontWeight="Bold" Height="28"/>
-                <TextBox x:Name="height_surface2" HorizontalAlignment="Left" Height="22" Margin="60,125,0,0" TextWrapping="Wrap" Text="8" VerticalAlignment="Top" Width="24" TextAlignment="Center"/>
-                -->
+                <Label Content="Offsets:" HorizontalAlignment="Left" VerticalAlignment="Top" Width="93" FontWeight="Bold" RenderTransformOrigin="0.571,5" Margin="0,99,0,0"/>
+                <TextBox Name="xoff_surface2" HorizontalAlignment="Left" Height="22" Margin="5,125,0,0" TextWrapping="Wrap" Text="8" VerticalAlignment="Top" Width="24" TextAlignment="Center"/>
+                <Label Content="x" HorizontalAlignment="Left" Margin="29,121,0,0" VerticalAlignment="Top" Width="16" FontWeight="Bold"/>
+                <Label Content="z" HorizontalAlignment="Left" Margin="74,121,0,0" VerticalAlignment="Top" Width="28" FontWeight="Bold" Height="28"/>
+                <TextBox Name="zoff_surface2" HorizontalAlignment="Left" Height="22" Margin="50,125,0,0" TextWrapping="Wrap" Text="8" VerticalAlignment="Top" Width="24" TextAlignment="Center"/>
+
             </Grid>
-            
+
             <!-- Surface 3 -->
             <Grid Name="grid_surface3" Margin="247,251,112,120" Visibility="Hidden">
                 <Label Content="Surface 3" HorizontalAlignment="Left" VerticalAlignment="Top" Width="93" FontWeight="Bold" RenderTransformOrigin="0.571,5"/>
@@ -77,24 +76,20 @@
                     <ComboBoxItem Content="Ceiling"></ComboBoxItem>
                     <ComboBoxItem Content="Floor"></ComboBoxItem>
                 </ComboBox>
-                <!-- 
-                <Label Content="Dimensions:" HorizontalAlignment="Left" VerticalAlignment="Top" Width="93" FontWeight="Bold" RenderTransformOrigin="0.571,5" Margin="0,99,0,0"/>
-                <TextBox x:Name="width_surface3" HorizontalAlignment="Left" Height="22" Margin="6,125,0,0" TextWrapping="Wrap" Text="8" VerticalAlignment="Top" Width="24" TextAlignment="Center"/>
-                <Label Content="m  x" HorizontalAlignment="Left" Margin="25,121,0,0" VerticalAlignment="Top" Width="36" FontWeight="Bold"/>
-                <Label Content="m" HorizontalAlignment="Left" Margin="81,121,0,0" VerticalAlignment="Top" Width="28" FontWeight="Bold" Height="28"/>
-                <TextBox x:Name="height_surface3" HorizontalAlignment="Left" Height="22" Margin="61,125,0,0" TextWrapping="Wrap" Text="8" VerticalAlignment="Top" Width="24" TextAlignment="Center"/>
-                -->
+                <Label Content="Offsets:" HorizontalAlignment="Left" VerticalAlignment="Top" Width="93" FontWeight="Bold" RenderTransformOrigin="0.571,5" Margin="0,99,0,0"/>
+                <TextBox Name="xoff_surface3" HorizontalAlignment="Left" Height="22" Margin="5,125,0,0" TextWrapping="Wrap" Text="8" VerticalAlignment="Top" Width="24" TextAlignment="Center"/>
+                <Label Content="x" HorizontalAlignment="Left" Margin="29,121,0,0" VerticalAlignment="Top" Width="16" FontWeight="Bold"/>
+                <Label Content="z" HorizontalAlignment="Left" Margin="74,121,0,0" VerticalAlignment="Top" Width="28" FontWeight="Bold" Height="28"/>
+                <TextBox Name="zoff_surface3" HorizontalAlignment="Left" Height="22" Margin="50,125,0,0" TextWrapping="Wrap" Text="8" VerticalAlignment="Top" Width="24" TextAlignment="Center"/>
+
             </Grid>
-            
+
             <!-- Surface 4 -->
             <Grid Name="grid_surface4" Margin="356,251,0,120" Visibility="Hidden">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="19*"/>
-                    <ColumnDefinition Width="37*"/>
-                </Grid.ColumnDefinitions>
-                <Label Content="Surface 4" HorizontalAlignment="Left" VerticalAlignment="Top" Width="93" FontWeight="Bold" RenderTransformOrigin="0.571,5" Grid.ColumnSpan="2"/>
-                <TextBox x:Name="name_surface4" HorizontalAlignment="Left" VerticalAlignment="Top" Width="88" Height="24" Margin="10,31,0,0" Grid.ColumnSpan="2" />
-                <ComboBox x:Name="surface4_type_box" HorizontalAlignment="Left" Margin="10,71,0,0" VerticalAlignment="Top" Width="88" Height="23" Grid.ColumnSpan="2">
+                
+                <Label Content="Surface 4" HorizontalAlignment="Left" VerticalAlignment="Top" Width="93" FontWeight="Bold" RenderTransformOrigin="0.571,5" />
+                <TextBox x:Name="name_surface4" HorizontalAlignment="Left" VerticalAlignment="Top" Width="88" Height="24" Margin="10,31,0,0" />
+                <ComboBox x:Name="surface4_type_box" HorizontalAlignment="Left" Margin="10,71,0,0" VerticalAlignment="Top" Width="88" Height="23" >
                     <ComboBoxItem Content="Top"></ComboBoxItem>
                     <ComboBoxItem Content="Right"></ComboBoxItem>
                     <ComboBoxItem Content="Left"></ComboBoxItem>
@@ -102,17 +97,16 @@
                     <ComboBoxItem Content="Ceiling"></ComboBoxItem>
                     <ComboBoxItem Content="Floor"></ComboBoxItem>
                 </ComboBox>
-                
-                <!-- TODO
-                <TextBox x:Name="width_surface4" HorizontalAlignment="Left" Height="22" Margin="9,125,0,0" TextWrapping="Wrap" Text="8" VerticalAlignment="Top" Width="24" TextAlignment="Center"/>
-                <Label Content="m  x" HorizontalAlignment="Left" Margin="28,121,0,0" VerticalAlignment="Top" Width="36" FontWeight="Bold" Grid.ColumnSpan="2"/>
-                <Label Content="m" HorizontalAlignment="Left" Margin="46,121,0,0" VerticalAlignment="Top" Width="28" FontWeight="Bold" Height="28" Grid.Column="1"/>
-                <TextBox x:Name="height_surface4" HorizontalAlignment="Left" Height="22" Margin="26,125,0,0" TextWrapping="Wrap" Text="8" VerticalAlignment="Top" Width="24" TextAlignment="Center" Grid.Column="1"/>
-                <Label Content="Dimensions:" HorizontalAlignment="Left" VerticalAlignment="Top" Width="93" FontWeight="Bold" RenderTransformOrigin="0.571,5" Margin="0,99,0,0" Grid.ColumnSpan="2"/>
-                -->
+
+                <Label Content="Offsets:" HorizontalAlignment="Left" VerticalAlignment="Top" Width="93" FontWeight="Bold" RenderTransformOrigin="0.571,5" Margin="0,99,0,0"/>
+                <TextBox Name="xoff_surface4" HorizontalAlignment="Left" Height="22" Margin="5,125,0,0" TextWrapping="Wrap" Text="8" VerticalAlignment="Top" Width="24" TextAlignment="Center"/>
+                <Label Content="x" HorizontalAlignment="Left" Margin="29,121,0,0" VerticalAlignment="Top" Width="16" FontWeight="Bold"/>
+                <Label Content="z" HorizontalAlignment="Left" Margin="74,121,0,0" VerticalAlignment="Top" Width="28" FontWeight="Bold" Height="28"/>
+                <TextBox Name="zoff_surface4" HorizontalAlignment="Left" Height="22" Margin="50,125,0,0" TextWrapping="Wrap" Text="8" VerticalAlignment="Top" Width="24" TextAlignment="Center"/>
+
             </Grid>
 
-            <Button x:Name="set_surfaces_button" Content="Set Surfaces" HorizontalAlignment="Left" Margin="31,455,0,0" VerticalAlignment="Top" Width="105" Height="28" Background="#FFFBFBFB" BorderThickness="2" Click="Set_Surfaces_Click" FontWeight="Bold"/>
+            <Button x:Name="set_surfaces_button" Content="Set Surfaces" HorizontalAlignment="Left" Margin="10,455,0,0" VerticalAlignment="Top" Width="105" Height="28" Background="#FFFBFBFB" BorderThickness="2" Click="Set_Surfaces_Click" FontWeight="Bold"/>
         </Grid>
         <Button x:Name="resetup_button" IsEnabled="False" Content="Re-set Up Room" HorizontalAlignment="Left" Margin="216,170,0,0" VerticalAlignment="Top" Width="105" Height="28" Background="#FFFBFBFB" BorderThickness="2" Click="ReSetUp_Click" FontWeight="Bold"/>
 

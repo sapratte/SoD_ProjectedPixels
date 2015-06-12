@@ -259,21 +259,29 @@ namespace SoD_ProjectedPixels
                 {
                     selectedItem = (ComboBoxItem)surface1_type_box.SelectedItem;
                     surface.type = selectedItem.Content.ToString();
+                    surface.xoffset = Convert.ToDouble(xoff_surface1);
+                    surface.zoffset = Convert.ToDouble(zoff_surface1);
                 }
                 else if (pair.Key == "2") 
                 {
                     selectedItem = (ComboBoxItem)surface2_type_box.SelectedItem;
                     surface.type = selectedItem.Content.ToString();
+                    surface.xoffset = Convert.ToDouble(xoff_surface2);
+                    surface.zoffset = Convert.ToDouble(zoff_surface2);
                 }
                 else if (pair.Key == "3")
                 {
                     selectedItem = (ComboBoxItem)surface3_type_box.SelectedItem;
                     surface.type = selectedItem.Content.ToString();
+                    surface.xoffset = Convert.ToDouble(xoff_surface3);
+                    surface.zoffset = Convert.ToDouble(zoff_surface3);
                 }
                 else if (pair.Key == "4")
                 {
                     selectedItem = (ComboBoxItem)surface4_type_box.SelectedItem;
                     surface.type = selectedItem.Content.ToString();
+                    surface.xoffset = Convert.ToDouble(xoff_surface4);
+                    surface.zoffset = Convert.ToDouble(zoff_surface4);
                 }
             }
         }
