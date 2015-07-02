@@ -254,34 +254,43 @@ namespace SoD_ProjectedPixels
             {
                 Projector.Surface surface = pair.Value;
                 ComboBoxItem selectedItem;
+                double result;
 
                 if (pair.Key == "1")
                 {
                     selectedItem = (ComboBoxItem)surface1_type_box.SelectedItem;
                     surface.type = selectedItem.Content.ToString();
-                    surface.xoffset = Convert.ToDouble(xoff_surface1);
-                    surface.zoffset = Convert.ToDouble(zoff_surface1);
+                    if (Double.TryParse(xoff_surface1.Text, out result))
+                        surface.xoffset = result;
+                    if (Double.TryParse(zoff_surface1.Text, out result))
+                        surface.zoffset = result;
                 }
                 else if (pair.Key == "2") 
                 {
                     selectedItem = (ComboBoxItem)surface2_type_box.SelectedItem;
                     surface.type = selectedItem.Content.ToString();
-                    surface.xoffset = Convert.ToDouble(xoff_surface2);
-                    surface.zoffset = Convert.ToDouble(zoff_surface2);
+                    if (Double.TryParse(xoff_surface2.Text, out result))
+                        surface.xoffset = result;
+                    if (Double.TryParse(zoff_surface2.Text, out result))
+                        surface.zoffset = result;
                 }
                 else if (pair.Key == "3")
                 {
                     selectedItem = (ComboBoxItem)surface3_type_box.SelectedItem;
                     surface.type = selectedItem.Content.ToString();
-                    surface.xoffset = Convert.ToDouble(xoff_surface3);
-                    surface.zoffset = Convert.ToDouble(zoff_surface3);
+                    if (Double.TryParse(xoff_surface3.Text, out result))
+                        surface.xoffset = result;
+                    if (Double.TryParse(zoff_surface3.Text, out result))
+                        surface.zoffset = result;
                 }
                 else if (pair.Key == "4")
                 {
                     selectedItem = (ComboBoxItem)surface4_type_box.SelectedItem;
                     surface.type = selectedItem.Content.ToString();
-                    surface.xoffset = Convert.ToDouble(xoff_surface4);
-                    surface.zoffset = Convert.ToDouble(zoff_surface4);
+                    if (Double.TryParse(xoff_surface4.Text, out result))
+                        surface.xoffset = result;
+                    if (Double.TryParse(zoff_surface4.Text, out result))
+                        surface.zoffset = result;
                 }
             }
         }
